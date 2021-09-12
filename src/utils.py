@@ -62,10 +62,24 @@ def get_mfa_tokens(mfa_secret):
     print("\n")
     return values
 
-def check_recently_use(check_date):
+def check_recent_use(check_date):
     if not check_date:
         return ""
     today = datetime.datetime.now()
     delta = today - check_date.replace(tzinfo=None)
     if delta.days < 7:
         return red(bold(":: been used recently"))
+
+def list_groups():
+    client = boto3.client('iam')
+    response = client.list_groups()
+    usernames =[u['GroupName'] for u in response['Groups']]
+    return usernames
+
+def filter_groups(search_string):
+    usernames = list_groups()
+    filtered_list=[]
+    for u in usernames:
+        if re.search("^"+search_string, u, re.IGNORECASE):
+            filtered_list.append(u)
+    return filtered_list

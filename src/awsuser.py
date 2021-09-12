@@ -25,6 +25,7 @@ class user:
         self.login_profile = self.user.LoginProfile()
         self.access_keys = self._get_accesskey_list()
         self.mfa_devices = self._get_mfa_devices()
+        self.groups = self.get_groups()
 
         self.mfa_secret_key = ""
         self.access_key_pair  = ""
@@ -79,7 +80,7 @@ class user:
         if not self._user_exist():
             self.user.create()
         else:
-            print("User already Exists")
+            print(f"User {self.username} already Exists")
 
 
     def delete_user(self):
@@ -87,6 +88,7 @@ class user:
             self.delete_mfa()
             self.delete_all_accesskeys()
             self.delete_login()
+            self.remove_from_all_groups()
             self.user.delete()
 
     
@@ -134,7 +136,7 @@ class user:
         except AccessKeyExists:
             pass
         except Exception as e:
-            print(f"Could not create/reset Access Keys for {self.username}")
+            print(f"Could not create Access Keys for {self.username}")
             raise(e)
 
     def _remove_unassigned_mfa(self):
@@ -202,7 +204,7 @@ class user:
             access_key = self.user.AccessKey([access_key_id])
             access_key.delete()
         except Exception as e:
-            print(f"Could not delete access key pair for {self.username}")  
+            print(f"Could not delete access key pair ({access_key_id}) for {self.username}")  
             raise(e)
 
     def delete_all_accesskeys(self):
@@ -224,7 +226,9 @@ class user:
         table_data=[]
         table_data.append((bold(yellow("Username")),bold(self.username)))
         table_data.append((green("--------"),""))
-        table_data.append((bold("Last Login"),self.user.password_last_used if self._login_exist() else "Disabled",utils.check_recently_use(self.user.password_last_used)))
+        table_data.append((bold("Groups"), ", ".join(self.get_groups()) ))
+        table_data.append((green("--------"),""))
+        table_data.append((bold("Last Login"),self.user.password_last_used if self._login_exist() else "Disabled",utils.check_recent_use(self.user.password_last_used)))
         table_data.append((green("--------"),""))
         table_data.append((bold("MFA"),"Enabled" if self._mfa_exists() else "None"))
         table_data.append((green("--------"),""))
@@ -235,7 +239,7 @@ class user:
             table_data.append((bold("AccessKey"),key['AccessKeyId']))
             table_data.append((bold("ServiceName"),last_used.get('ServiceName')))
             table_data.append((bold("Region"),last_used.get('Region')))
-            table_data.append((bold("LastUsedDate"),last_used.get('LastUsedDate'), utils.check_recently_use(last_used.get('LastUsedDate'))))
+            table_data.append((bold("LastUsedDate"),last_used.get('LastUsedDate'), utils.check_recent_use(last_used.get('LastUsedDate'))))
             table_data.append((green("--------"),""))
         print(tabulate(table_data,tablefmt='plain'))
 
@@ -262,6 +266,41 @@ class user:
     
     def check_sub_resources(self):
         pass
+
+    def get_groups(self):
+        try:
+            groups = self.user.groups.all()
+            return [g.group_name for g in groups]
+        except self.client.exceptions.NoSuchEntityException:
+            return []
+
+    def add_to_groups(self,group_names):
+        for group in group_names:
+            try:
+                response = self.user.add_group(
+                        GroupName=group
+                    )
+                print(f"Added user {self.username} to group {group}")
+            except self.client.exceptions.NoSuchEntityException:
+                print(f"Could not find group : {group}")
+            except:
+                print(f"Could not add to group {group} for {self.username}")
+    
+    def remove_from_groups(self,group_names):
+        for group in group_names:
+            try:
+                response = self.user.remove_group(
+                        GroupName=group
+                    )
+                print(f"Removed user {self.username} from group {group}")
+            except:
+                print(f"Could not remove from group {group} for {self.username}")
+
+    def remove_from_all_groups(self):
+        group_names = self.get_groups()
+        self.remove_from_groups(group_names)
+
+
          
 
 def main():
@@ -274,7 +313,7 @@ def main():
     parser.add_argument('--force','-f',action='store_true')
     parser.add_argument('--groups',type=str)
     parser.add_argument('--verbose','-v',action='store_true')
-    # parser.add_argument('--aws-profile',action='store') ##WIP 
+    # parser.add_argument('--profile',action='store') ##WIP 
 
     args = parser.parse_args()
 
@@ -287,6 +326,10 @@ def main():
             u.create_accesskeys()
         if args.mfa:
             u.enable_mfa()
+        if args.groups:
+            group_list = [x.strip() for x in args.groups.split(',')]
+            u.add_to_groups(group_list)
+
         u.get_login_details()
 
     elif args.command == "delete":
