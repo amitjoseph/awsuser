@@ -59,7 +59,7 @@ def get_mfa_tokens(mfa_secret):
         print(" >> Please Wait %3d s" % (30-i),end ="\r")
 
     values.append(totp.now())
-    print("\n")
+    print("MFA tokens Generated \t\t\t")
     return values
 
 def check_recent_use(check_date):

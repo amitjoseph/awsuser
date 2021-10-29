@@ -102,6 +102,7 @@ class user:
                     Password=self.password,
                     PasswordResetRequired=True
                     )
+                print(f"Created login Profile for {self.username}")
         except Exception as e:
             print(f"Could not create login Profile for {self.username}")
             raise(e)
@@ -115,6 +116,7 @@ class user:
                         Password=self.password,
                         PasswordResetRequired=True
                     )
+                    print(f"login Profile reset for {self.username} was successful")
             else:
                 print(f"Login Profile does not exists for {self.username}")
 
@@ -133,6 +135,7 @@ class user:
             self.access_key_pair = self.user.create_access_key_pair()
             self.access_keys = self._get_accesskey_list()
             # print(self.access_key_pair)
+            print(f"Created Access Keys for {self.username}")
         except AccessKeyExists:
             pass
         except Exception as e:
@@ -181,6 +184,7 @@ class user:
                 AuthenticationCode1=tokens[0],
                 AuthenticationCode2=tokens[1]
             )
+            print(f"MFA enabled for {self.username}")
             self.mfa_devices = self._get_mfa_devices()
 
         except MFAExists:
@@ -194,6 +198,7 @@ class user:
         try:
             if self._login_exist():
                 self.login_profile.delete()
+                print(f"Deleted login for {self.username}")  
         except Exception as e:
             print(f"Could not delete login for {self.username}")  
             raise(e)
@@ -201,8 +206,9 @@ class user:
 
     def delete_accesskey(self,access_key_id):
         try:
-            access_key = self.user.AccessKey([access_key_id])
+            access_key = self.user.AccessKey(access_key_id)
             access_key.delete()
+            print(f"Deleted access key pair ({access_key_id}) for {self.username}")  
         except Exception as e:
             print(f"Could not delete access key pair ({access_key_id}) for {self.username}")  
             raise(e)
@@ -219,6 +225,7 @@ class user:
             mfa_device = self.user.MfaDevice(mfa_serial_number)
             mfa_device.disassociate()
             self.client.delete_virtual_mfa_device(SerialNumber=mfa_serial_number)
+            print(f"Deleted MFA for {self.username}")  
         else:
             print("No MFA exist!")
 
@@ -360,3 +367,6 @@ def main():
 
     else:
         pass
+
+if __name__ == "__main__":
+    main()
