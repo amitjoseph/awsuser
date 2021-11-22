@@ -16,19 +16,35 @@ class user:
     def __init__(self,username):
         self.username = username
         self.password = ""
-        self.account_alias = utils.get_account_alias()
-        self.console_url = f"https://{self.account_alias}.signin.aws.amazon.com/console"
+        # self.account_alias = utils.get_account_alias()
+        # self.console_url = f"https://{self.account_alias}.signin.aws.amazon.com/console"
         self.iam = boto3.resource('iam')
         self.client = boto3.client('iam')
 
         self.user = self.iam.User(username)
+        # self.login_profile = self.user.LoginProfile()
+        # self.access_keys = self._get_accesskey_list()
+        # self.mfa_devices = self._get_mfa_devices()
+        # self.groups = self.get_groups()
+
+        self.mfa_secret_key = ""
+        self.access_key_pair  = ""
+
+    def _refresh_accesskey(self):
+        self.access_keys = self._get_accesskey_list()
+
+    def _refresh_login_profile(self):
+        self.login_profile = self.user.LoginProfile()
+
+    def _refresh_mfa_devices(self):
+        self.mfa_devices = self._get_mfa_devices()
+
+
+    def _refresh_all(self):
         self.login_profile = self.user.LoginProfile()
         self.access_keys = self._get_accesskey_list()
         self.mfa_devices = self._get_mfa_devices()
         self.groups = self.get_groups()
-
-        self.mfa_secret_key = ""
-        self.access_key_pair  = ""
 
     def _get_accesskey_list(self):
         try:
@@ -70,7 +86,6 @@ class user:
             return False
 
     def _mfa_exists(self):
-        self._get_mfa_devices()
         if len(self.mfa_devices) > 0:
             return True
         else:
@@ -90,9 +105,11 @@ class user:
             self.delete_login()
             self.remove_from_all_groups()
             self.user.delete()
+            print(f"User {self.username} has been deleted!")  
 
     
     def create_login(self,custom_password=""):
+        self._refresh_login_profile()
         try:
             if self._login_exist():
                 print(f"Login Profile already exists for {self.username}")
@@ -108,6 +125,7 @@ class user:
             raise(e)
 
     def reset_login(self,custom_password=""):
+        self._refresh_login_profile()
         try:
             if self._login_exist():
                     print(f"Reseting Login Profile for {self.username}")
@@ -125,6 +143,7 @@ class user:
             raise(e)
 
     def create_accesskeys(self,reset=False,create_if_not_exist=True):
+        self._refresh_accesskey()
         try:
             if len(self.access_keys) == 2:
                 print(f"Two Access Key Pairs already exists for {self.username}")
@@ -153,6 +172,7 @@ class user:
 
 
     def enable_mfa(self):
+        self._refresh_mfa_devices()
         try:
             if len(self.mfa_devices) > 0:
                 raise MFAExists
@@ -195,6 +215,7 @@ class user:
     
 
     def delete_login(self):
+        self._refresh_login_profile()
         try:
             if self._login_exist():
                 self.login_profile.delete()
@@ -214,12 +235,14 @@ class user:
             raise(e)
 
     def delete_all_accesskeys(self):
+        self._refresh_accesskey()
         for pair in self.access_keys:
             self.delete_accesskey(pair['AccessKeyId'])
             # access_key = self.user.AccessKey(pair['AccessKeyId'])
             # access_key.delete()
 
     def delete_mfa(self):
+        self._refresh_mfa_devices()
         if len(self.mfa_devices) > 0:
             mfa_serial_number = self.mfa_devices[0]['SerialNumber']
             mfa_device = self.user.MfaDevice(mfa_serial_number)
@@ -230,6 +253,7 @@ class user:
             print("No MFA exist!")
 
     def get_user_status(self):
+        self._refresh_all()
         table_data=[]
         table_data.append((bold(yellow("Username")),bold(self.username)))
         table_data.append((green("--------"),""))
@@ -253,6 +277,10 @@ class user:
     
     def get_login_details(self):
         # return self.username,self.password,self.console_url
+
+        self.account_alias = utils.get_account_alias()
+        self.console_url = f"https://{self.account_alias}.signin.aws.amazon.com/console"
+        print("")
 
         table_data=[]
         if self.password:
@@ -341,19 +369,23 @@ def main():
 
     elif args.command == "delete":
         u = user(args.username)
-        u.get_user_status()
-        if not args.force:
-            x = input(f"Do you want to delete the user {u.username} ? (y/n) :")
-            if x != 'y':
-                exit(0)
-        u.delete_user()
+        if u._user_exist():
+            u.get_user_status()
+            if not args.force:
+                x = input(f"Do you want to delete the user {u.username} ? (y/n) :")
+                if x != 'y':
+                    exit(0)
+                u.delete_user()
+        else:
+            print(f"{args.username} does not exist!")
 
     elif args.command == "reset-console-login":
         u = user(args.username)
         if u._user_exist():
-            u.get_user_status()
-        u.create_login(reset=True)
-        print(u.get_login_details())
+            u.reset_login()
+            u.get_login_details()
+        else:
+            print(f"{args.username} does not exist!")
 
     elif args.command == "search":
         print(utils.filter_username(args.username))
@@ -363,7 +395,7 @@ def main():
         if u._user_exist():
             u.get_user_status()
         else:
-            print(f"{args.username} does not exists!")
+            print(f"{args.username} does not exist!")
 
     else:
         pass
