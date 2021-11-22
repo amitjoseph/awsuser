@@ -265,7 +265,7 @@ class user:
             table_data.append(("AccessKeySecret",self.access_key_pair.secret))
 
         if self.mfa_secret_key:
-            table_data.append(("MFA Secret",self.mfa_secret_key))
+            table_data.append(("MFA Secret",self.mfa_secret_key.decode('utf-8')))
 
         print(tabulate(table_data,tablefmt='plain'))
 
