@@ -7,7 +7,7 @@ import time
 import datetime
 from curtsies.fmtfuncs import red, bold, green, on_blue, yellow
 
-def get_random_password(password_length=14):
+def get_random_password(password_length=20):
     allowed_symbols = "@#$!*^%"
     random_source = string.ascii_letters + string.digits + allowed_symbols #string.punctuation
     
