@@ -56,9 +56,12 @@ def get_mfa_tokens(mfa_secret):
     values.append(totp.now())
     for i in range(30):
         time.sleep(1)
+        tt = totp.now()
+        if tt != values[0]:
+            break
         print(" >> Please Wait %3d s" % (30-i),end ="\r")
 
-    values.append(totp.now())
+    values.append(tt)
     print("MFA tokens Generated \t\t\t")
     return values
 
