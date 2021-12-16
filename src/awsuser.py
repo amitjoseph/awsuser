@@ -5,6 +5,7 @@ from src import utils
 import argparse
 from tabulate import tabulate
 from curtsies.fmtfuncs import red, bold, green, on_blue, yellow
+import os
 
 class AccessKeyExists(Exception):
     pass
@@ -340,7 +341,7 @@ class user:
 
 def main():
     parser = argparse.ArgumentParser(description='aws user managemant tool')
-    parser.add_argument('command',action='store',choices=["create","reset-console-login","delete","search","describe"])
+    parser.add_argument('command',action='store',choices=["create","reset-console-login","delete","search","describe","version"])
     parser.add_argument('username',action='store')
     parser.add_argument('--login',action='store_true')
     parser.add_argument('--access-keys',action='store_true')
@@ -396,6 +397,11 @@ def main():
             u.get_user_status()
         else:
             print(f"{args.username} does not exist!")
+
+    elif args.command == "version":
+        with open(os.path.abspath(os.path.join(os.path.dirname(__file__) + '/version.py'))) as f:
+            version = f.read()
+        print("Current version : ",version)
 
     else:
         pass

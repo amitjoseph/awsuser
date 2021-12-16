@@ -3,11 +3,14 @@ from setuptools import setup, find_packages
 with open('requirements.txt') as f:
     requirements = f.readlines()
   
+with open('src/version.py') as f:
+    version = f.read()
+
 long_description = ''
   
 setup(
         name ='awsuser',
-        version ='0.1.0',
+        version = version.strip(),
         author ='Amit Joseph',
         author_email ='me@amitjoseph.com',
         url ='https://github.com/amitjoseph/awsuser',
